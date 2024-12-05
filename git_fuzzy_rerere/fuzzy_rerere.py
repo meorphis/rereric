@@ -146,103 +146,98 @@ class FuzzyRerere:
         best_match = matches[0]
         return best_match['resolution'], best_match['context_similarity']
 
-    def _compute_resolution(self, file_path_before, file_path_after, conflict_info):
-        """
-        Compute the resolution by comparing the file content before and after resolution.
-        Returns the resolved content that replaced the conflict.
-        """
-        with open(file_path_before, 'r') as f:
-            before_content = f.read()
-        with open(file_path_after, 'r') as f:
-            after_content = f.read()
-
-        # Split content into sections using the conflict as delimiter
-        before_parts = before_content.split(conflict_info['conflict'])
-        if len(before_parts) < 2:
-            return ""  # Conflict not found in before content
-            
-        # Find the content between this conflict and the next one (if any)
-        # in both before and after files
-        before_prefix = before_parts[0]
-        after_prefix_end = after_content.find(before_prefix) + len(before_prefix)
-        
-        # Look for the next conflict marker or use the rest of the file
-        next_conflict_pos = after_content.find('<<<<<<<', after_prefix_end)
-        if next_conflict_pos == -1:
-            resolution = after_content[after_prefix_end:]
-        else:
-            resolution = after_content[after_prefix_end:next_conflict_pos]
-            
-        # Find where the next matching content begins
-        if len(before_parts) > 1:
-            next_content = before_parts[1]
-            resolution_end = resolution.find(next_content)
-            if resolution_end != -1:
-                resolution = resolution[:resolution_end]
-                
-        return resolution.rstrip()
 
     def save_preresolution(self, file_path):
-        """Save the state of a file before conflict resolution."""
+        """Save the entire file state before conflict resolution."""
         conflicts = self._extract_conflict_markers(file_path)
         if not conflicts:
             print(f"No conflicts found in {file_path}")
             return False
             
-        # Store pre-resolution state
-        for conflict in conflicts:
-            conflict_hash = self._hash_conflict(conflict['conflict'])
-            temp_path = self.rerere_dir / f"{conflict_hash}.pre"
-            with open(temp_path, 'w') as f:
-                f.write(conflict['conflict'])
-                
-            # Store metadata separately
-            meta_path = self.rerere_dir / f"{conflict_hash}.meta"
-            metadata = {
-                "file_path": str(file_path),
-                "before_context": conflict['before_context'],
-                "after_context": conflict['after_context'],
-                "start_line": conflict['start_line'],
-                "end_line": conflict['end_line']
-            }
-            with open(meta_path, 'w') as f:
-                json.dump(metadata, f, indent=2)
+        # Generate a unique hash for this file's conflicts
+        conflict_texts = [c['conflict'] for c in conflicts]
+        combined_hash = self._hash_conflict(''.join(conflict_texts))
+            
+        # Store the entire pre-resolution file
+        pre_path = self.rerere_dir / f"{combined_hash}.pre"
+        with open(file_path, 'r') as src, open(pre_path, 'w') as dst:
+            dst.write(src.read())
+            
+        # Store metadata about conflicts
+        meta_path = self.rerere_dir / f"{combined_hash}.meta"
+        metadata = {
+            "file_path": str(file_path),
+            "conflicts": conflicts
+        }
+        with open(meta_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
                 
         return True
 
     def save_postresolution(self, file_path):
-        """Save the resolution after conflicts have been manually resolved."""
-        # Find all pre-resolution states
+        """Save resolutions after conflicts have been manually resolved."""
+        # Find matching pre-resolution state
         for pre_file in self.rerere_dir.glob("*.pre"):
-            conflict_hash = pre_file.stem
-            meta_path = self.rerere_dir / f"{conflict_hash}.meta"
+            meta_path = self.rerere_dir / f"{pre_file.stem}.meta"
             
             if not meta_path.exists():
                 continue
                 
-            # Load metadata
             with open(meta_path) as f:
                 metadata = json.load(f)
                 
             if metadata["file_path"] != str(file_path):
                 continue
                 
-            # Load pre-resolution state
+            # Load both file versions
             with open(pre_file) as f:
-                pre_content = f.read()
+                pre_content = f.readlines()
+            with open(file_path) as f:
+                post_content = f.readlines()
                 
-            # Compute resolution
-            resolution = self._compute_resolution(pre_file, file_path, metadata)
+            # Process each conflict, tracking line offsets
+            resolutions = []
+            line_offset = 0
+            
+            for conflict in metadata["conflicts"]:
+                # Adjust conflict start/end lines based on previous resolutions
+                adjusted_start = conflict["start_line"] + line_offset
+                adjusted_end = conflict["end_line"] + line_offset
+                
+                # Extract resolution
+                resolution_lines = []
+                post_line = adjusted_start
+                while post_line < len(post_content):
+                    # Look for matching content after the conflict
+                    next_content = None
+                    if post_line < len(pre_content):
+                        next_content = pre_content[adjusted_end + 1]
+                    
+                    if next_content and post_content[post_line] == next_content:
+                        break
+                        
+                    resolution_lines.append(post_content[post_line])
+                    post_line += 1
+                    
+                resolution = ''.join(resolution_lines)
+                
+                # Update line offset for next conflict
+                original_conflict_lines = conflict["end_line"] - conflict["start_line"] + 1
+                resolution_line_count = len(resolution_lines)
+                line_offset += resolution_line_count - original_conflict_lines
+                
+                resolutions.append({
+                    "conflict": conflict["conflict"],
+                    "resolution": resolution,
+                    "before_context": conflict["before_context"],
+                    "after_context": conflict["after_context"]
+                })
             
             # Save complete record
-            record_path = self.rerere_dir / f"{conflict_hash}.json"
+            record_path = self.rerere_dir / f"{pre_file.stem}.json"
             record = {
-                "conflict": pre_content,
-                "before_context": metadata["before_context"],
-                "after_context": metadata["after_context"],
-                "resolution": resolution,
                 "file_path": str(file_path),
-                "start_line": metadata["start_line"]
+                "resolutions": resolutions
             }
             with open(record_path, 'w') as f:
                 json.dump(record, f, indent=2)
