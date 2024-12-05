@@ -159,12 +159,11 @@ def hello():
         self.assertIsNotNone(resolution)
         self.assertGreaterEqual(confidence, 0.8)
 
-content here
->>>>>>>"""
-        
-        content2 = """
+    def test_no_similar_resolution(self):
+        """Test behavior when no similar resolution is found."""
+        content1 = """
 <<<<<<<
-completely unrelated
+totally different
 =======
 content here
 >>>>>>>"""
