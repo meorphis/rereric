@@ -81,6 +81,7 @@ class FuzzyRerere:
                 })
                 
                 conflict_lines = []
+                context_before = []
                 in_conflict = False
             elif in_conflict:
                 conflict_lines.append(line)
@@ -158,18 +159,19 @@ class FuzzyRerere:
         file_id = pre_path.stem
         return file_id.replace('__', '/').replace('.pre', '').replace(str(self.rerere_dir) + '/', '')
 
-    def save_preresolution(self, file_path):
+    def mark_conflicts(self, file_paths):
         """Save the entire file state before conflict resolution."""
-        with open(file_path, 'r') as f:
-            content = f.read()
-        
-        pre_path = self.get_pre_path_from_file_path(file_path)
-        with open(pre_path, 'w') as f:
-            f.write(content)
+        for file_path in file_paths:
+            with open(file_path, 'r') as f:
+                content = f.read()
+            
+            pre_path = self.get_pre_path_from_file_path(file_path)
+            with open(pre_path, 'w') as f:
+                f.write(content)
                 
         return True
 
-    def save_postresolution(self):
+    def save_resolutions(self):
         """Save resolutions after conflicts have been manually resolved."""
         # Find matching pre-resolution state
         for pre_file in self.rerere_dir.glob("*.pre"):
@@ -196,46 +198,46 @@ class FuzzyRerere:
             
             for conflict in conflicts:
                 # Adjust conflict start/end lines based on previous resolutions
-                adjusted_start = conflict["start_line"] + line_offset
-                adjusted_end = conflict["end_line"] + line_offset
+                pre_start = conflict["start_line"]
+                post_start = pre_start + line_offset
+                pre_end = conflict["end_line"]
+                post_end = post_start
                 
                 # Extract resolution
-                resolution_lines = []
-                post_line = adjusted_start
-                while post_line < len(post_content):
+                post_line = post_start
+                pre_line = pre_end + 1
+
+                matches = 0
+
+                while post_line < len(post_content) and pre_line < len(pre_content):
                     # Look for meaningful matching content after the conflict
                     # Try to match next N non-empty lines
                     REQUIRED_MATCHING_LINES = 3
-                    matches = 0
-                    pre_idx = adjusted_end + 1
-                    post_idx = post_line
-                    
-                    # Skip empty lines in pre-content and check for conflict markers
-                    while pre_idx < len(pre_content):
-                        line = pre_content[pre_idx]
-                        if line.startswith('<<<<<<<'):
-                            break
-                        if line.strip():
-                            # Found non-empty line in pre-content
-                            # Check if it matches current post line
-                            if (post_line < len(post_content) and 
-                                line == post_content[post_line]):
-                                # Found matching content, stop collecting resolution
-                                matches = REQUIRED_MATCHING_LINES
-                            break
-                        pre_idx += 1
 
-                    if matches >= REQUIRED_MATCHING_LINES:
+                    if pre_content[pre_line].startswith('<<<<<<<'):
                         break
 
-                    resolution_lines.append(post_content[post_line])
+                    if post_content[post_line] == pre_content[pre_line]:
+                        if pre_content[pre_line].strip():
+                            matches += 1
+                        
+                        pre_line += 1
+
+                    else:
+                        matches = 0
+                        pre_line = pre_end + 1
+                        post_end = post_line + 1
+
                     post_line += 1
+
+                    if matches == REQUIRED_MATCHING_LINES:
+                        break
                     
-                resolution = ''.join(resolution_lines)
+                resolution = ''.join(post_content[post_start:post_end])
                 
                 # Update line offset for next conflict
                 original_conflict_lines = conflict["end_line"] - conflict["start_line"] + 1
-                resolution_line_count = len(resolution_lines)
+                resolution_line_count = post_end - post_start
                 line_offset += resolution_line_count - original_conflict_lines
                 
                 resolutions.append({
@@ -280,20 +282,25 @@ class FuzzyRerere:
         with open(file_path, 'w') as f:
             f.writelines(content)
 
-    def resolve_conflicts(self, file_path):
+    def reapply_resolutions(self, file_paths):
         """Try to resolve conflicts in a file using stored resolutions."""
-        conflicts = self._extract_conflict_markers(file_path)
         resolved = False
 
-        for conflict_info in conflicts:
-            resolution, confidence = self._find_similar_resolution(conflict_info)
-            if resolution:
-                print(f"Found similar resolution with {confidence:.2%} confidence")
-                if confidence >= self.similarity_threshold:
-                    self._apply_resolution(file_path, conflict_info, resolution)
-                    resolved = True
-                    print(f"Applied resolution from {conflict_info['file_path']} "
-                          f"at line {conflict_info['start_line']}")
+        for file_path in file_paths:
+            conflicts = self._extract_conflict_markers(file_path)
+
+            print(conflicts)
+
+            for conflict_info in conflicts:
+                resolution, confidence = self._find_similar_resolution(conflict_info)
+
+                if resolution:
+                    print(f"Found similar resolution with {confidence:.2%} confidence")
+                    if confidence >= self.similarity_threshold:
+                        self._apply_resolution(file_path, conflict_info, resolution)
+                        resolved = True
+                        print(f"Applied resolution from {conflict_info['file_path']} "
+                            f"at line {conflict_info['start_line']}")
 
         return resolved
 
@@ -306,7 +313,7 @@ def main():
                        help="Number of context lines to consider")
     parser.add_argument('command', choices=['pre', 'post', 'resolve'],
                        help="Command to execute (pre=save pre-resolution, post=save post-resolution, resolve=apply resolution)")
-    parser.add_argument('file', help="File to process")
+    parser.add_argument('files', nargs='*', help="Files to process")
     
     args = parser.parse_args()
     
@@ -315,14 +322,14 @@ def main():
         context_lines=args.context
     )
     
-    if args.command == 'pre':
-        if fuzzy_rerere.save_preresolution(args.file):
-            print(f"Saved pre-resolution state for {args.file}")
-    elif args.command == 'post':
-        fuzzy_rerere.save_postresolution()
-        print(f"Saved post-resolution state for {args.file}")
-    elif args.command == 'resolve':
-        if fuzzy_rerere.resolve_conflicts(args.file):
+    if args.command == 'mark_conflicts':
+        if fuzzy_rerere.mark_conflicts(*args.files):
+            print(f"Saved pre-resolution state for {args.files}")
+    elif args.command == 'save_resolutions':
+        fuzzy_rerere.save_resolutions()
+        print(f"Saved post-resolution state for {args.files}")
+    elif args.command == 'reapply_resolutions':
+        if fuzzy_rerere.reapply_resolutions(*args.files):
             print("Successfully resolved conflicts")
         else:
             print("No matching resolutions found")
