@@ -13,8 +13,12 @@ def pytest_sessionfinish(session, exitstatus):
     """Clean up any cached files after tests complete."""
     # Find the git directory from any test that created it
     for item in session.items:
-        if hasattr(item, 'funcargs') and 'temp_git_dir' in item.funcargs:
-            git_dir = Path(item.funcargs['temp_git_dir'])
-            fuzzy_rerere_dir = git_dir / '.git' / 'fuzzy-rerere'
-            if fuzzy_rerere_dir.exists():
-                shutil.rmtree(fuzzy_rerere_dir)
+        try:
+            if hasattr(item, 'funcargs') and item.funcargs is not None:
+                if 'temp_git_dir' in item.funcargs:
+                    git_dir = Path(item.funcargs['temp_git_dir'])
+                    fuzzy_rerere_dir = git_dir / '.git' / 'fuzzy-rerere'
+                    if fuzzy_rerere_dir.exists():
+                        shutil.rmtree(fuzzy_rerere_dir)
+        except AttributeError:
+            continue
