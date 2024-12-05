@@ -35,15 +35,15 @@ class TestFuzzyRerere(unittest.TestCase):
         """Test extracting a single conflict with context lines."""
         content = """Some context before
 More context before
-[conflict start]
+<<<<<<<
 my local changes
 span multiple
 lines here
-[conflict middle]
+=======
 their remote changes
 also span
 multiple lines
-[conflict end]
+>>>>>>>
 Some context after
 More context after"""
         
@@ -52,32 +52,32 @@ More context after"""
         
         self.assertEqual(len(conflicts), 1)
         expected_conflict = """More context before
-[conflict start]
+<<<<<<<
 my local changes
 span multiple
 lines here
-[conflict middle]
+=======
 their remote changes
 also span
 multiple lines
-[conflict end]
+>>>>>>>
 Some context after"""
         self.assertEqual(conflicts[0], expected_conflict)
 
     def test_extract_conflict_markers_multiple_conflicts(self):
         """Test extracting multiple conflicts from a single file."""
         content = """First section
-[conflict start]
+<<<<<<<
 local change 1
-[conflict middle]
+=======
 remote change 1
-[conflict end]
+>>>>>>>
 Middle section
-[conflict start]
+<<<<<<<
 local change 2
-[conflict middle]
+=======
 remote change 2
-[conflict end]
+>>>>>>>
 Last section"""
         
         file_path = self.create_conflict_file(content)
@@ -89,11 +89,12 @@ Last section"""
 
     def test_record_resolution(self):
         """Test recording a conflict resolution."""
-        content = """[conflict start]
+        content = """
+<<<<<<<
 my changes
-[conflict middle]
+=======
 their changes
-[conflict end]"""
+>>>>>>>"""
         
         file_path = self.create_conflict_file(content)
         self.fuzzy_rerere.record_resolution(file_path)
@@ -111,11 +112,12 @@ their changes
 
     def test_find_similar_resolution_exact_match(self):
         """Test finding an exact match for conflict resolution."""
-        content = """[conflict start]
+        content = """
+<<<<<<<
 feature code
-[conflict middle]
+=======
 base code
-[conflict end]"""
+>>>>>>>"""
         
         file_path = self.create_conflict_file(content)
         self.fuzzy_rerere.record_resolution(file_path)
@@ -127,21 +129,23 @@ base code
 
     def test_find_similar_resolution_different_file(self):
         """Test finding similar resolution from a different file."""
-        content1 = """[conflict start]
+        content1 = """
+<<<<<<<
 def hello():
     print("Hello")
-[conflict middle]
+=======
 def hello():
     print("Hi")
-[conflict end]"""
+>>>>>>>"""
 
-        content2 = """[conflict start]
+        content2 = """
+<<<<<<<
 def hello():
     print("Hello")
-[conflict middle]
+=======
 def hello():
     print("Hey")
-[conflict end]"""
+>>>>>>>"""
         
         file1 = self.create_conflict_file(content1)
         self.fuzzy_rerere.record_resolution(file1)
@@ -157,17 +161,19 @@ def hello():
 
     def test_no_similar_resolution(self):
         """Test behavior when no similar resolution is found."""
-        content1 = """[conflict start]
+        content1 = """
+<<<<<<<
 totally different
-[conflict middle]
+=======
 content here
-[conflict end]"""
+>>>>>>>"""
         
-        content2 = """[conflict start]
+        content2 = """
+<<<<<<<
 completely unrelated
-[conflict middle]
+=======
 different stuff
-[conflict end]"""
+>>>>>>>"""
         
         file1 = self.create_conflict_file(content1)
         self.fuzzy_rerere.record_resolution(file1)

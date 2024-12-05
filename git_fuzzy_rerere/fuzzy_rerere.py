@@ -152,7 +152,7 @@ class FuzzyRerere:
         
         # Store the pre-resolution state
         for conflict in conflicts:
-            conflict_hash = self._hash_conflict(conflict)
+            conflict_hash = self._hash_conflict(conflict['conflict'])
             record_path = self.rerere_dir / f"{conflict_hash}.json"
             
             if not record_path.exists():
