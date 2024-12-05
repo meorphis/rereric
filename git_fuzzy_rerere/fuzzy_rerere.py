@@ -149,15 +149,11 @@ class FuzzyRerere:
 
     def save_preresolution(self, file_path):
         """Save the entire file state before conflict resolution."""
-        # Check if file has any conflicts
-        if not self._extract_conflict_markers(file_path):
-            print(f"No conflicts found in {file_path}")
-            return False
-            
-        # Generate a unique hash for the file content
         with open(file_path, 'r') as f:
             content = f.read()
-            combined_hash = self._hash_conflict(content)
+            
+        # Generate a unique hash for the file content
+        combined_hash = self._hash_conflict(content)
             
         # Store the entire pre-resolution file
         pre_path = self.rerere_dir / f"{combined_hash}.pre"
@@ -181,9 +177,18 @@ class FuzzyRerere:
             if metadata["file_path"] != str(file_path):
                 continue
                 
-            # Load both file versions
+            # Load and check pre-resolution content
             with open(pre_file) as f:
                 pre_content = f.readlines()
+                
+            # Extract conflicts from pre-resolution state
+            conflicts = self._extract_conflict_markers(pre_file)
+            if not conflicts:
+                print(f"No conflicts found in pre-resolution state")
+                pre_file.unlink()  # Clean up pre file since it has no conflicts
+                return
+                
+            # Load post-resolution content
             with open(file_path) as f:
                 post_content = f.readlines()
                 
