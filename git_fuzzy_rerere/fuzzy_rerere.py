@@ -49,12 +49,12 @@ class FuzzyRerere:
             if line.startswith('<<<<<<<'):
                 in_conflict = True
                 current_conflict = context_before[-self.context_lines:] if context_before else []
+                context_before = []
                 current_conflict.append(line)
             elif line.startswith('=======') and in_conflict:
                 current_conflict.append(line)
             elif line.startswith('>>>>>>>') and in_conflict:
                 current_conflict.append(line)
-                # Add after-context lines until we either hit the context limit or another conflict
                 after_lines = []
                 after_start = min(i + 1, len(lines))
                 for j in range(after_start, min(after_start + self.context_lines, len(lines))):
