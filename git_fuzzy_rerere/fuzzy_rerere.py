@@ -40,11 +40,12 @@ class FuzzyRerere:
         current_conflict = []
         in_conflict = False
         context_before = []
+        context_after = []
         
         with open(file_path) as f:
             lines = f.readlines()
             
-        for line in lines:
+        for i, line in enumerate(lines):
             if line.startswith('<<<<<<<'):
                 in_conflict = True
                 current_conflict = context_before[-self.context_lines:] if context_before else []
@@ -53,6 +54,10 @@ class FuzzyRerere:
                 current_conflict.append(line)
             elif line.startswith('>>>>>>>') and in_conflict:
                 current_conflict.append(line)
+                # Add after context
+                after_start = min(i + 1, len(lines))
+                after_end = min(i + 1 + self.context_lines, len(lines))
+                current_conflict.extend(lines[after_start:after_end])
                 conflicts.append(''.join(current_conflict))
                 current_conflict = []
                 in_conflict = False
@@ -65,10 +70,12 @@ class FuzzyRerere:
                     
         return conflicts
 
-    def _find_similar_resolution(self, conflict):
+    def _find_similar_resolution(self, conflict, current_file):
         """Find a similar conflict resolution from the stored records."""
         best_match = None
         best_ratio = 0
+        same_file_match = None
+        same_file_ratio = 0
 
         for record_file in self.rerere_dir.glob("*.json"):
             with open(record_file) as f:
@@ -76,10 +83,18 @@ class FuzzyRerere:
                 stored_conflict = record["conflict"]
                 ratio = difflib.SequenceMatcher(None, conflict, stored_conflict).ratio()
                 
-                if ratio > self.similarity_threshold and ratio > best_ratio:
-                    best_ratio = ratio
-                    best_match = record["resolution"]
+                # Check if this is from the same file
+                if ratio > self.similarity_threshold:
+                    if record["file_path"] == str(current_file) and ratio > same_file_ratio:
+                        same_file_ratio = ratio
+                        same_file_match = record["resolution"]
+                    elif ratio > best_ratio:
+                        best_ratio = ratio
+                        best_match = record["resolution"]
 
+        # Prefer matches from the same file if they exist
+        if same_file_match is not None:
+            return same_file_match, same_file_ratio
         return best_match, best_ratio
 
     def record_resolution(self, file_path):
@@ -106,7 +121,7 @@ class FuzzyRerere:
         resolved = False
 
         for conflict in conflicts:
-            resolution, confidence = self._find_similar_resolution(conflict)
+            resolution, confidence = self._find_similar_resolution(conflict, file_path)
             if resolution:
                 print(f"Found similar resolution with {confidence:.2%} confidence")
                 # Apply the resolution
