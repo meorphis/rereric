@@ -104,8 +104,10 @@ class FuzzyRerere:
         current_file = conflict_info['file_path']
         current_conflict = conflict_info['conflict']
         current_line = conflict_info['start_line']
-
-        for record_file in self.rerere_dir.glob("*.json"):
+        
+        # Only look at files with matching conflict hash
+        conflict_hash = self._hash_conflict(current_conflict)
+        for record_file in self.rerere_dir.glob(f"{conflict_hash}_*.json"):
             with open(record_file) as f:
                 record = json.load(f)
                 
