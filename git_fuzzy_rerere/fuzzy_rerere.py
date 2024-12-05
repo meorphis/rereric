@@ -127,7 +127,9 @@ class FuzzyRerere:
                         'context_similarity': context_similarity,
                         'same_file': record['file_path'] == current_file,
                         'line_distance': abs(record.get('start_line', 0) - current_line),
-                        'file_path': record['file_path']
+                        'file_path': record['file_path'],
+                        'start_line': record['start_line'],
+                        'end_line': record['end_line']
                     })
 
         if not matches:
@@ -240,7 +242,9 @@ class FuzzyRerere:
                     "conflict": conflict["conflict"],
                     "resolution": resolution,
                     "before_context": conflict["before_context"],
-                    "after_context": conflict["after_context"]
+                    "after_context": conflict["after_context"],
+                    "start_line": conflict["start_line"],
+                    "end_line": conflict["end_line"]
                 })
             
             # Save each resolution separately
@@ -255,7 +259,9 @@ class FuzzyRerere:
                     "conflict": resolution["conflict"],
                     "resolution": resolution["resolution"],
                     "before_context": resolution["before_context"],
-                    "after_context": resolution["after_context"]
+                    "after_context": resolution["after_context"],
+                    "start_line": resolution["start_line"],
+                    "end_line": resolution["end_line"]
                 }
                 with open(record_path, 'w') as f:
                     json.dump(record, f, indent=2)
