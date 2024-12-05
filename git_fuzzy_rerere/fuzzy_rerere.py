@@ -146,23 +146,67 @@ class FuzzyRerere:
         best_match = matches[0]
         return best_match['resolution'], best_match['context_similarity']
 
+    def _compute_resolution(self, file_path_before, file_path_after, conflict_info):
+        """
+        Compute the resolution by comparing the file content before and after resolution.
+        Returns the resolved content that replaced the conflict.
+        """
+        with open(file_path_before, 'r') as f:
+            before_lines = f.readlines()
+        with open(file_path_after, 'r') as f:
+            after_lines = f.readlines()
+
+        # Extract the lines that replaced the conflict
+        start_line = conflict_info['start_line']
+        end_line = conflict_info['end_line']
+        
+        # The resolution is everything in the after_lines that replaced the conflict
+        # Find where the before and after content starts differing
+        resolution_lines = []
+        i = start_line
+        while i < len(after_lines):
+            if i >= len(before_lines) or after_lines[i] != before_lines[i]:
+                resolution_lines.append(after_lines[i])
+            if i > end_line and i < len(before_lines) and after_lines[i] == before_lines[i]:
+                break
+            i += 1
+            
+        return ''.join(resolution_lines)
+
     def record_resolution(self, file_path):
         """Record the resolution of conflicts in a file."""
+        # Store the pre-resolution state with conflicts
         conflicts = self._extract_conflict_markers(file_path)
         
-        # Store the pre-resolution state
+        # Create a temporary copy of the file with conflicts
+        conflict_file = str(file_path) + ".conflict"
+        with open(file_path, 'r') as src, open(conflict_file, 'w') as dst:
+            dst.write(src.read())
+            
         for conflict in conflicts:
             conflict_hash = self._hash_conflict(conflict['conflict'])
             record_path = self.rerere_dir / f"{conflict_hash}.json"
             
             if not record_path.exists():
+                # Wait for the user to resolve the conflict in the original file
+                input(f"Please resolve the conflict in {file_path} and press Enter...")
+                
+                # Compute the resolution
+                resolution = self._compute_resolution(conflict_file, file_path, conflict)
+                
                 record = {
-                    "conflict": conflict,
-                    "resolution": None,
-                    "file_path": str(file_path)
+                    "conflict": conflict['conflict'],
+                    "before_context": conflict['before_context'],
+                    "after_context": conflict['after_context'],
+                    "resolution": resolution,
+                    "file_path": str(file_path),
+                    "start_line": conflict['start_line']
                 }
                 with open(record_path, 'w') as f:
                     json.dump(record, f, indent=2)
+        
+        # Clean up temporary file
+        os.remove(conflict_file)
 
     def _apply_resolution(self, file_path, conflict_info, resolution):
         """Apply a resolution to a specific conflict in a file."""
