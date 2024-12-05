@@ -233,15 +233,23 @@ class FuzzyRerere:
                     "after_context": conflict["after_context"]
                 })
             
-            # Save complete record
-            record_path = self.rerere_dir / f"{pre_file.stem}.json"
-            record = {
-                "file_path": str(file_path),
-                "resolutions": resolutions
-            }
-            with open(record_path, 'w') as f:
-                json.dump(record, f, indent=2)
+            # Save each resolution separately
+            for resolution in resolutions:
+                # Create unique hash for this specific resolution
+                resolution_hash = self._hash_conflict(resolution["conflict"])
+                random_suffix = self._generate_random_suffix()
+                record_path = self.rerere_dir / f"{resolution_hash}_{random_suffix}.json"
                 
+                record = {
+                    "file_path": str(file_path),
+                    "conflict": resolution["conflict"],
+                    "resolution": resolution["resolution"],
+                    "before_context": resolution["before_context"],
+                    "after_context": resolution["after_context"]
+                }
+                with open(record_path, 'w') as f:
+                    json.dump(record, f, indent=2)
+            
             # Clean up temporary files
             pre_file.unlink()
             meta_path.unlink()
