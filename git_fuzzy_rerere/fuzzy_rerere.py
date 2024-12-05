@@ -164,6 +164,17 @@ class FuzzyRerere:
                 with open(record_path, 'w') as f:
                     json.dump(record, f, indent=2)
 
+    def _apply_resolution(self, file_path, conflict_info, resolution):
+        """Apply a resolution to a specific conflict in a file."""
+        with open(file_path, 'r') as f:
+            content = f.readlines()
+            
+        # Replace the conflict with the resolution
+        content[conflict_info['start_line']:conflict_info['end_line'] + 1] = [resolution]
+            
+        with open(file_path, 'w') as f:
+            f.writelines(content)
+
     def resolve_conflicts(self, file_path):
         """Try to resolve conflicts in a file using stored resolutions."""
         conflicts = self._extract_conflict_markers(file_path)
@@ -174,10 +185,9 @@ class FuzzyRerere:
             if resolution:
                 print(f"Found similar resolution with {confidence:.2%} confidence")
                 if confidence >= self.similarity_threshold:
-                    # Apply the resolution
-                    # TODO: Implement the actual conflict replacement logic
+                    self._apply_resolution(file_path, conflict_info, resolution)
                     resolved = True
-                    print(f"Resolution found in {conflict_info['file_path']} "
+                    print(f"Applied resolution from {conflict_info['file_path']} "
                           f"at line {conflict_info['start_line']}")
 
         return resolved
