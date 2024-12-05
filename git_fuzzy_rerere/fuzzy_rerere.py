@@ -208,12 +208,35 @@ class FuzzyRerere:
                 resolution_lines = []
                 post_line = adjusted_start
                 while post_line < len(post_content):
-                    # Look for matching content after the conflict
-                    next_content = None
-                    if post_line < len(pre_content):
-                        next_content = pre_content[adjusted_end + 1]
+                    # Look for meaningful matching content after the conflict
+                    # Try to match next N non-empty lines
+                    REQUIRED_MATCHING_LINES = 3
+                    matches = 0
+                    pre_idx = adjusted_end + 1
+                    post_idx = post_line
                     
-                    if next_content and post_content[post_line] == next_content:
+                    while (pre_idx < len(pre_content) and 
+                           post_idx < len(post_content) and 
+                           matches < REQUIRED_MATCHING_LINES):
+                        # Skip empty lines in pre-content
+                        while (pre_idx < len(pre_content) and 
+                               not pre_content[pre_idx].strip()):
+                            pre_idx += 1
+                        # Skip empty lines in post-content    
+                        while (post_idx < len(post_content) and 
+                               not post_content[post_idx].strip()):
+                            post_idx += 1
+                            
+                        if (pre_idx < len(pre_content) and 
+                            post_idx < len(post_content) and
+                            pre_content[pre_idx] == post_content[post_line]):
+                            matches += 1
+                            pre_idx += 1
+                            post_idx += 1
+                        else:
+                            break
+                    
+                    if matches >= REQUIRED_MATCHING_LINES:
                         break
                         
                     resolution_lines.append(post_content[post_line])
