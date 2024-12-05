@@ -63,7 +63,6 @@ class FuzzyRerere:
             elif line.startswith('>>>>>>>') and in_conflict:
                 conflict_lines.append(line)
                 
-                # Collect after context
                 after_lines = []
                 after_start = min(i + 1, len(lines))
                 for j in range(after_start, min(after_start + self.context_lines, len(lines))):
