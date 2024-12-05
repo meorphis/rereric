@@ -91,32 +91,60 @@ class FuzzyRerere:
                     
         return conflicts
 
-    def _find_similar_resolution(self, conflict, current_file):
+    def _calculate_context_similarity(self, context1_before, context1_after, context2_before, context2_after):
+        """Calculate the similarity between two sets of context."""
+        before_ratio = difflib.SequenceMatcher(None, context1_before, context2_before).ratio()
+        after_ratio = difflib.SequenceMatcher(None, context1_after, context2_after).ratio()
+        return (before_ratio + after_ratio) / 2
+
+    def _find_similar_resolution(self, conflict_info):
         """Find a similar conflict resolution from the stored records."""
-        best_match = None
-        best_ratio = 0
-        same_file_match = None
-        same_file_ratio = 0
+        matches = []
+        current_file = conflict_info['file_path']
+        current_conflict = conflict_info['conflict']
+        current_line = conflict_info['start_line']
 
         for record_file in self.rerere_dir.glob("*.json"):
             with open(record_file) as f:
                 record = json.load(f)
-                stored_conflict = record["conflict"]
-                ratio = difflib.SequenceMatcher(None, conflict, stored_conflict).ratio()
                 
-                # Check if this is from the same file
-                if ratio > self.similarity_threshold:
-                    if record["file_path"] == str(current_file) and ratio > same_file_ratio:
-                        same_file_ratio = ratio
-                        same_file_match = record["resolution"]
-                    elif ratio > best_ratio:
-                        best_ratio = ratio
-                        best_match = record["resolution"]
+                # First check for exact conflict match
+                if record["conflict"] != current_conflict:
+                    continue
+                
+                # Calculate context similarity
+                context_similarity = self._calculate_context_similarity(
+                    conflict_info['before_context'],
+                    conflict_info['after_context'],
+                    record.get('before_context', ''),
+                    record.get('after_context', '')
+                )
+                
+                # Only consider matches with sufficient context similarity
+                if context_similarity >= self.similarity_threshold:
+                    matches.append({
+                        'resolution': record['resolution'],
+                        'context_similarity': context_similarity,
+                        'same_file': record['file_path'] == current_file,
+                        'line_distance': abs(record.get('start_line', 0) - current_line),
+                        'file_path': record['file_path']
+                    })
 
-        # Prefer matches from the same file if they exist
-        if same_file_match is not None:
-            return same_file_match, same_file_ratio
-        return best_match, best_ratio
+        if not matches:
+            return None, 0
+
+        # Sort matches by priority:
+        # 1. Same file
+        # 2. Context similarity
+        # 3. Line number proximity
+        matches.sort(key=lambda x: (
+            x['same_file'],
+            x['context_similarity'],
+            -x['line_distance']
+        ), reverse=True)
+
+        best_match = matches[0]
+        return best_match['resolution'], best_match['context_similarity']
 
     def record_resolution(self, file_path):
         """Record the resolution of conflicts in a file."""
@@ -141,13 +169,16 @@ class FuzzyRerere:
         conflicts = self._extract_conflict_markers(file_path)
         resolved = False
 
-        for conflict in conflicts:
-            resolution, confidence = self._find_similar_resolution(conflict, file_path)
+        for conflict_info in conflicts:
+            resolution, confidence = self._find_similar_resolution(conflict_info)
             if resolution:
                 print(f"Found similar resolution with {confidence:.2%} confidence")
-                # Apply the resolution
-                # TODO: Implement the actual conflict replacement logic
-                resolved = True
+                if confidence >= self.similarity_threshold:
+                    # Apply the resolution
+                    # TODO: Implement the actual conflict replacement logic
+                    resolved = True
+                    print(f"Resolution found in {conflict_info['file_path']} "
+                          f"at line {conflict_info['start_line']}")
 
         return resolved
 
