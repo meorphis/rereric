@@ -1,23 +1,42 @@
-their remote changes
-also span
-multiple lines
->>>>>>> remote/main
-Some context after
-More context after
-"""
-        file_path = self.create_conflict_file(content)
-        conflicts = self.fuzzy_rerere._extract_conflict_markers(file_path)
-        
-        self.assertEqual(len(conflicts), 1)
-        self.assertIn("<<<<<<< HEAD", conflicts[0])
-        self.assertIn("my local changes", conflicts[0])
-        self.assertIn("=======", conflicts[0])
-        self.assertIn("their remote changes", conflicts[0])
-        self.assertIn(">>>>>>> remote/main", conflicts[0])
-        self.assertIn("Some context before", conflicts[0])
-        self.assertIn("Some context after", conflicts[0])
+import unittest
+import os
+import tempfile
+import json
+from pathlib import Path
+from git_fuzzy_rerere.fuzzy_rerere import FuzzyRerere
 
-    def test_record_resolution(self):
-        content = """<<<<<<< HEAD
-print("hello")
+class TestFuzzyRerere(unittest.TestCase):
+    def setUp(self):
+        """Set up test environment before each test."""
+        self.test_dir = tempfile.mkdtemp()
+        os.chdir(self.test_dir)
+        
+        # Initialize git repo
+        os.system("git init")
+        
+        # Create .git directory structure
+        self.git_dir = Path(self.test_dir) / ".git"
+        self.fuzzy_rerere = FuzzyRerere(similarity_threshold=0.8, context_lines=3)
+
+    def tearDown(self):
+        """Clean up test environment after each test."""
+        import shutil
+        os.chdir("/")  # Move out of directory before removing
+        shutil.rmtree(self.test_dir)
+
+    def create_conflict_file(self, content):
+        """Helper method to create a file with conflict markers."""
+        file_path = Path(self.test_dir) / "conflict.txt"
+        with open(file_path, "w") as f:
+            f.write(content)
+        return file_path
+
+    def test_extract_conflict_markers_single_conflict(self):
+        """Test extracting a single conflict with context lines."""
+        content = """Some context before
+More context before
+<<<<<<< HEAD
+my local changes
+span multiple
+lines
 
