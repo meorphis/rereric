@@ -208,40 +208,25 @@ class FuzzyRerere:
                     pre_idx = adjusted_end + 1
                     post_idx = post_line
                     
-                    while (pre_idx < len(pre_content) and 
-                           post_idx < len(post_content) and 
-                           matches < REQUIRED_MATCHING_LINES):
-                        # Skip empty lines in pre-content and check for conflict markers
-                        while pre_idx < len(pre_content):
-                            line = pre_content[pre_idx]
-                            if line.startswith('<<<<<<<'):
-                                # Found another conflict, stop here
-                                matches = REQUIRED_MATCHING_LINES  # Force break
-                                break
-                            if line.strip():
-                                break
-                            pre_idx += 1
-                        # Skip empty lines in post-content    
-                        while (post_idx < len(post_content) and 
-                               not post_content[post_idx].strip()):
-                            post_idx += 1
-                            
-                        if (pre_idx < len(pre_content) and 
-                            post_idx < len(post_content) and
-                            pre_content[pre_idx] == post_content[post_line]):
-                            matches += 1
-                            pre_idx += 1
-                            post_idx += 1
-                        else:
+                    # Skip empty lines in pre-content and check for conflict markers
+                    while pre_idx < len(pre_content):
+                        line = pre_content[pre_idx]
+                        if line.startswith('<<<<<<<'):
                             break
-                    
+                        if line.strip():
+                            # Found non-empty line in pre-content
+                            # Check if it matches current post line
+                            if (post_line < len(post_content) and 
+                                line == post_content[post_line]):
+                                # Found matching content, stop collecting resolution
+                                matches = REQUIRED_MATCHING_LINES
+                            break
+                        pre_idx += 1
+
                     if matches >= REQUIRED_MATCHING_LINES:
-                        # Found matching content, don't include it in resolution
                         break
-                    
-                    # Only include lines up to the matching content
-                    if matches == 0:
-                        resolution_lines.append(post_content[post_line])
+
+                    resolution_lines.append(post_content[post_line])
                     post_line += 1
                     
                 resolution = ''.join(resolution_lines)
