@@ -152,11 +152,9 @@ class FuzzyRerere:
         with open(file_path, 'r') as f:
             content = f.read()
             
-        # Generate a unique hash for the file content
-        combined_hash = self._hash_conflict(content)
-            
-        # Store the entire pre-resolution file
-        pre_path = self.rerere_dir / f"{combined_hash}.pre"
+        # Use sanitized file path as identifier
+        file_id = str(Path(file_path)).replace('/', '_')
+        pre_path = self.rerere_dir / f"{file_id}.pre"
         with open(pre_path, 'w') as f:
             f.write(content)
                 
