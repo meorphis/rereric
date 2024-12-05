@@ -54,7 +54,6 @@ class FuzzyRerere:
                 current_conflict.append(line)
             elif line.startswith('>>>>>>>') and in_conflict:
                 current_conflict.append(line)
-                # Add after context
                 after_start = min(i + 1, len(lines))
                 after_end = min(i + 1 + self.context_lines, len(lines))
                 current_conflict.extend(lines[after_start:after_end])
