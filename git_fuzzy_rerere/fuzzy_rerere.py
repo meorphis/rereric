@@ -288,10 +288,9 @@ class FuzzyRerere:
 
         for file_path in file_paths:
             conflicts = self._extract_conflict_markers(file_path)
-
-            print(conflicts)
-
-            for conflict_info in conflicts:
+            
+            # Process conflicts from bottom to top to maintain line numbers
+            for conflict_info in reversed(conflicts):
                 resolution, confidence = self._find_similar_resolution(conflict_info)
 
                 if resolution:
