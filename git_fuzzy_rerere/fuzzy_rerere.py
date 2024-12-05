@@ -236,9 +236,12 @@ class FuzzyRerere:
                             break
                     
                     if matches >= REQUIRED_MATCHING_LINES:
+                        # Found matching content, don't include it in resolution
                         break
-                        
-                    resolution_lines.append(post_content[post_line])
+                    
+                    # Only include lines up to the matching content
+                    if matches == 0:
+                        resolution_lines.append(post_content[post_line])
                     post_line += 1
                     
                 resolution = ''.join(resolution_lines)
