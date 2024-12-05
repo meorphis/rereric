@@ -218,9 +218,15 @@ class FuzzyRerere:
                     while (pre_idx < len(pre_content) and 
                            post_idx < len(post_content) and 
                            matches < REQUIRED_MATCHING_LINES):
-                        # Skip empty lines in pre-content
-                        while (pre_idx < len(pre_content) and 
-                               not pre_content[pre_idx].strip()):
+                        # Skip empty lines in pre-content and check for conflict markers
+                        while pre_idx < len(pre_content):
+                            line = pre_content[pre_idx]
+                            if line.startswith('<<<<<<<'):
+                                # Found another conflict, stop here
+                                matches = REQUIRED_MATCHING_LINES  # Force break
+                                break
+                            if line.strip():
+                                break
                             pre_idx += 1
                         # Skip empty lines in post-content    
                         while (post_idx < len(post_content) and 
