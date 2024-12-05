@@ -35,7 +35,7 @@ class TestFuzzyRerere(unittest.TestCase):
         """Test extracting a single conflict with context lines."""
         content = """Some context before
 More context before
-<<<<<<< HEAD
+<<<<<<<
 my local changes
 span multiple
 lines
