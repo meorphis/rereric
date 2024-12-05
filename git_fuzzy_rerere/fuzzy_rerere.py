@@ -173,40 +173,74 @@ class FuzzyRerere:
             
         return ''.join(resolution_lines)
 
-    def record_resolution(self, file_path):
-        """Record the resolution of conflicts in a file."""
-        # Store the pre-resolution state with conflicts
+    def save_preresolution(self, file_path):
+        """Save the state of a file before conflict resolution."""
         conflicts = self._extract_conflict_markers(file_path)
-        
-        # Create a temporary copy of the file with conflicts
-        conflict_file = str(file_path) + ".conflict"
-        with open(file_path, 'r') as src, open(conflict_file, 'w') as dst:
-            dst.write(src.read())
+        if not conflicts:
+            print(f"No conflicts found in {file_path}")
+            return False
             
+        # Store pre-resolution state
         for conflict in conflicts:
             conflict_hash = self._hash_conflict(conflict['conflict'])
-            record_path = self.rerere_dir / f"{conflict_hash}.json"
+            temp_path = self.rerere_dir / f"{conflict_hash}.pre"
+            with open(temp_path, 'w') as f:
+                f.write(conflict['conflict'])
+                
+            # Store metadata separately
+            meta_path = self.rerere_dir / f"{conflict_hash}.meta"
+            metadata = {
+                "file_path": str(file_path),
+                "before_context": conflict['before_context'],
+                "after_context": conflict['after_context'],
+                "start_line": conflict['start_line'],
+                "end_line": conflict['end_line']
+            }
+            with open(meta_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+                
+        return True
+
+    def save_postresolution(self, file_path):
+        """Save the resolution after conflicts have been manually resolved."""
+        # Find all pre-resolution states
+        for pre_file in self.rerere_dir.glob("*.pre"):
+            conflict_hash = pre_file.stem
+            meta_path = self.rerere_dir / f"{conflict_hash}.meta"
             
-            if not record_path.exists():
-                # Wait for the user to resolve the conflict in the original file
-                input(f"Please resolve the conflict in {file_path} and press Enter...")
+            if not meta_path.exists():
+                continue
                 
-                # Compute the resolution
-                resolution = self._compute_resolution(conflict_file, file_path, conflict)
+            # Load metadata
+            with open(meta_path) as f:
+                metadata = json.load(f)
                 
-                record = {
-                    "conflict": conflict['conflict'],
-                    "before_context": conflict['before_context'],
-                    "after_context": conflict['after_context'],
-                    "resolution": resolution,
-                    "file_path": str(file_path),
-                    "start_line": conflict['start_line']
-                }
-                with open(record_path, 'w') as f:
-                    json.dump(record, f, indent=2)
-        
-        # Clean up temporary file
-        os.remove(conflict_file)
+            if metadata["file_path"] != str(file_path):
+                continue
+                
+            # Load pre-resolution state
+            with open(pre_file) as f:
+                pre_content = f.read()
+                
+            # Compute resolution
+            resolution = self._compute_resolution(pre_file, file_path, metadata)
+            
+            # Save complete record
+            record_path = self.rerere_dir / f"{conflict_hash}.json"
+            record = {
+                "conflict": pre_content,
+                "before_context": metadata["before_context"],
+                "after_context": metadata["after_context"],
+                "resolution": resolution,
+                "file_path": str(file_path),
+                "start_line": metadata["start_line"]
+            }
+            with open(record_path, 'w') as f:
+                json.dump(record, f, indent=2)
+                
+            # Clean up temporary files
+            pre_file.unlink()
+            meta_path.unlink()
 
     def _apply_resolution(self, file_path, conflict_info, resolution):
         """Apply a resolution to a specific conflict in a file."""
@@ -243,8 +277,8 @@ def main():
                        help="Similarity threshold (0.0-1.0)")
     parser.add_argument('--context', type=int, default=3,
                        help="Number of context lines to consider")
-    parser.add_argument('command', choices=['record', 'resolve'],
-                       help="Command to execute")
+    parser.add_argument('command', choices=['pre', 'post', 'resolve'],
+                       help="Command to execute (pre=save pre-resolution, post=save post-resolution, resolve=apply resolution)")
     parser.add_argument('file', help="File to process")
     
     args = parser.parse_args()
@@ -254,8 +288,12 @@ def main():
         context_lines=args.context
     )
     
-    if args.command == 'record':
-        fuzzy_rerere.record_resolution(args.file)
+    if args.command == 'pre':
+        if fuzzy_rerere.save_preresolution(args.file):
+            print(f"Saved pre-resolution state for {args.file}")
+    elif args.command == 'post':
+        fuzzy_rerere.save_postresolution(args.file)
+        print(f"Saved post-resolution state for {args.file}")
     elif args.command == 'resolve':
         if fuzzy_rerere.resolve_conflicts(args.file):
             print("Successfully resolved conflicts")
