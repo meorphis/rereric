@@ -112,7 +112,7 @@ class FuzzyRerere:
                 record = json.load(f)
                 
                 # First check for exact conflict match
-                if record["conflict"] != current_conflict:
+                if record["conflict"] != current_conflict:                    
                     continue
                 
                 # Calculate context similarity
