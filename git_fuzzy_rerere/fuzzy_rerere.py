@@ -152,26 +152,35 @@ class FuzzyRerere:
         Returns the resolved content that replaced the conflict.
         """
         with open(file_path_before, 'r') as f:
-            before_lines = f.readlines()
+            before_content = f.read()
         with open(file_path_after, 'r') as f:
-            after_lines = f.readlines()
+            after_content = f.read()
 
-        # Extract the lines that replaced the conflict
-        start_line = conflict_info['start_line']
-        end_line = conflict_info['end_line']
-        
-        # The resolution is everything in the after_lines that replaced the conflict
-        # Find where the before and after content starts differing
-        resolution_lines = []
-        i = start_line
-        while i < len(after_lines):
-            if i >= len(before_lines) or after_lines[i] != before_lines[i]:
-                resolution_lines.append(after_lines[i])
-            if i > end_line and i < len(before_lines) and after_lines[i] == before_lines[i]:
-                break
-            i += 1
+        # Split content into sections using the conflict as delimiter
+        before_parts = before_content.split(conflict_info['conflict'])
+        if len(before_parts) < 2:
+            return ""  # Conflict not found in before content
             
-        return ''.join(resolution_lines)
+        # Find the content between this conflict and the next one (if any)
+        # in both before and after files
+        before_prefix = before_parts[0]
+        after_prefix_end = after_content.find(before_prefix) + len(before_prefix)
+        
+        # Look for the next conflict marker or use the rest of the file
+        next_conflict_pos = after_content.find('<<<<<<<', after_prefix_end)
+        if next_conflict_pos == -1:
+            resolution = after_content[after_prefix_end:]
+        else:
+            resolution = after_content[after_prefix_end:next_conflict_pos]
+            
+        # Find where the next matching content begins
+        if len(before_parts) > 1:
+            next_content = before_parts[1]
+            resolution_end = resolution.find(next_content)
+            if resolution_end != -1:
+                resolution = resolution[:resolution_end]
+                
+        return resolution.rstrip()
 
     def save_preresolution(self, file_path):
         """Save the state of a file before conflict resolution."""
