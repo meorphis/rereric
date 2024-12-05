@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-A fuzzy git rerere driver that allows for approximate conflict resolution matching
+A fuzzy git rerere implementation that allows for approximate conflict resolution matching
 based on configurable context similarity thresholds.
 """
 
@@ -15,7 +15,7 @@ import random
 import string
 
 class FuzzyRerere:
-    def __init__(self, similarity_threshold=0.8, context_lines=3):
+    def __init__(self, similarity_threshold=0.8, context_lines=2):
         self.similarity_threshold = similarity_threshold
         self.context_lines = context_lines
         self.git_dir = self._get_git_dir()
@@ -166,6 +166,9 @@ class FuzzyRerere:
                 content = f.read()
             
             pre_path = self.get_pre_path_from_file_path(file_path)
+
+            print(f"Saving pre-resolution state to {pre_path}")
+
             with open(pre_path, 'w') as f:
                 f.write(content)
                 
@@ -308,9 +311,9 @@ def main():
     parser = argparse.ArgumentParser(description="Fuzzy Git Rerere Driver")
     parser.add_argument('--similarity', type=float, default=0.8,
                        help="Similarity threshold (0.0-1.0)")
-    parser.add_argument('--context', type=int, default=3,
+    parser.add_argument('--context', type=int, default=2,
                        help="Number of context lines to consider")
-    parser.add_argument('command', choices=['pre', 'post', 'resolve'],
+    parser.add_argument('command', choices=['mark_conflicts', 'save_resolutions', 'reapply_resolutions'],
                        help="Command to execute (pre=save pre-resolution, post=save post-resolution, resolve=apply resolution)")
     parser.add_argument('files', nargs='*', help="Files to process")
     
@@ -322,13 +325,13 @@ def main():
     )
     
     if args.command == 'mark_conflicts':
-        if fuzzy_rerere.mark_conflicts(*args.files):
+        if fuzzy_rerere.mark_conflicts(args.files):
             print(f"Saved pre-resolution state for {args.files}")
     elif args.command == 'save_resolutions':
         fuzzy_rerere.save_resolutions()
-        print(f"Saved post-resolution state for {args.files}")
+        print(f"Saved post-resolution state")
     elif args.command == 'reapply_resolutions':
-        if fuzzy_rerere.reapply_resolutions(*args.files):
+        if fuzzy_rerere.reapply_resolutions(args.files):
             print("Successfully resolved conflicts")
         else:
             print("No matching resolutions found")
