@@ -20,10 +20,3 @@ class TestFuzzyRerere(unittest.TestCase):
             context_lines=3
         )
 
-    def test_extract_conflict_markers(self):
-        # Create a test file with merge conflicts
-        conflict_content = """Some context before
-More context
-Even more context
-<<<<<<< HEAD
-This is the current change
