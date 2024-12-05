@@ -11,6 +11,8 @@ import subprocess
 from pathlib import Path
 import hashlib
 import json
+import random
+import string
 
 class FuzzyRerere:
     def __init__(self, similarity_threshold=0.8, context_lines=3):
@@ -19,6 +21,11 @@ class FuzzyRerere:
         self.git_dir = self._get_git_dir()
         self.rerere_dir = Path(self.git_dir) / "fuzzy-rerere"
         self.rerere_dir.mkdir(exist_ok=True)
+        self.random_suffix_length = 8
+
+    def _generate_random_suffix(self):
+        """Generate a random string suffix for conflict files."""
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=self.random_suffix_length))
 
     def _get_git_dir(self):
         """Get the .git directory for the current repository."""
@@ -37,10 +44,10 @@ class FuzzyRerere:
     def _extract_conflict_markers(self, file_path):
         """Extract conflict markers and their context from a file."""
         conflicts = []
-        current_conflict = []
         in_conflict = False
         context_before = []
-        context_after = []
+        conflict_lines = []
+        conflict_start_line = 0
         
         with open(file_path) as f:
             lines = f.readlines()
@@ -48,25 +55,36 @@ class FuzzyRerere:
         for i, line in enumerate(lines):
             if line.startswith('<<<<<<<'):
                 in_conflict = True
-                current_conflict = context_before[-self.context_lines:] if context_before else []
-                context_before = []
-                current_conflict.append(line)
+                conflict_start_line = i
+                before_context = ''.join(context_before[-self.context_lines:]) if context_before else ''
+                conflict_lines = [line]
             elif line.startswith('=======') and in_conflict:
-                current_conflict.append(line)
+                conflict_lines.append(line)
             elif line.startswith('>>>>>>>') and in_conflict:
-                current_conflict.append(line)
+                conflict_lines.append(line)
+                
+                # Collect after context
                 after_lines = []
                 after_start = min(i + 1, len(lines))
                 for j in range(after_start, min(after_start + self.context_lines, len(lines))):
                     if lines[j].startswith('<<<<<<<'):
                         break
                     after_lines.append(lines[j])
-                current_conflict.extend(after_lines)
-                conflicts.append(''.join(current_conflict))
-                current_conflict = []
+                
+                conflict_text = ''.join(conflict_lines)
+                conflicts.append({
+                    'conflict': conflict_text,
+                    'before_context': before_context,
+                    'after_context': ''.join(after_lines),
+                    'start_line': conflict_start_line,
+                    'end_line': i,
+                    'file_path': str(file_path)
+                })
+                
+                conflict_lines = []
                 in_conflict = False
             elif in_conflict:
-                current_conflict.append(line)
+                conflict_lines.append(line)
             else:
                 context_before.append(line)
                 if len(context_before) > self.context_lines:
