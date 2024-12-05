@@ -21,11 +21,17 @@ class FuzzyRerere:
         self.git_dir = self._get_git_dir()
         self.rerere_dir = Path(self.git_dir) / "fuzzy-rerere"
         self.rerere_dir.mkdir(exist_ok=True)
-        self.random_suffix_length = 8
 
-    def _generate_random_suffix(self):
-        """Generate a random string suffix for conflict files."""
-        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=self.random_suffix_length))
+    def _hash_record(self, record):
+        """Create a hash of the entire conflict record including context."""
+        content = (
+            record["conflict"] +
+            record.get("before_context", "") +
+            record.get("after_context", "") +
+            str(record.get("start_line", "")) +
+            str(record.get("end_line", ""))
+        )
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
 
     def _get_git_dir(self):
         """Get the .git directory for the current repository."""
@@ -257,9 +263,9 @@ class FuzzyRerere:
             # Save each resolution separately
             for resolution in resolutions:
                 # Create unique hash for this specific resolution
-                resolution_hash = self._hash_conflict(resolution["conflict"])
-                random_suffix = self._generate_random_suffix()
-                record_path = self.rerere_dir / f"{resolution_hash}_{random_suffix}.json"
+                conflict_hash = self._hash_conflict(resolution["conflict"])
+                record_hash = self._hash_record(resolution)
+                record_path = self.rerere_dir / f"{conflict_hash}_{record_hash}.json"
                 
                 record = {
                     "file_path": str(file_path),
