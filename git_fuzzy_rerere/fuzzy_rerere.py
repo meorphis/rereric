@@ -146,35 +146,33 @@ class FuzzyRerere:
         best_match = matches[0]
         return best_match['resolution'], best_match['context_similarity']
 
+    def get_pre_path_from_file_path(self, file_path):
+        """Get the path to the pre-resolution state for a file."""
+        file_id = str(Path(file_path)).replace('/', '__')
+        return self.rerere_dir / f"{file_id}.pre"
+
+    def get_file_path_from_pre_path(self, pre_path):
+        """Get the path to the file from the pre-resolution state."""
+        file_id = pre_path.stem
+        return file_id.replace('__', '/').replace('.pre', '').replace(str(self.rerere_dir) + '/', '')
 
     def save_preresolution(self, file_path):
         """Save the entire file state before conflict resolution."""
         with open(file_path, 'r') as f:
             content = f.read()
-            
-        # Use sanitized file path as identifier
-        file_id = str(Path(file_path)).replace('/', '_')
-        pre_path = self.rerere_dir / f"{file_id}.pre"
+        
+        pre_path = self.get_pre_path_from_file_path(file_path)
         with open(pre_path, 'w') as f:
             f.write(content)
                 
         return True
 
-    def save_postresolution(self, file_path):
+    def save_postresolution(self):
         """Save resolutions after conflicts have been manually resolved."""
         # Find matching pre-resolution state
         for pre_file in self.rerere_dir.glob("*.pre"):
-            meta_path = self.rerere_dir / f"{pre_file.stem}.meta"
-            
-            if not meta_path.exists():
-                continue
-                
-            with open(meta_path) as f:
-                metadata = json.load(f)
-                
-            if metadata["file_path"] != str(file_path):
-                continue
-                
+            file_path = self.get_file_path_from_pre_path(pre_file)
+
             # Load and check pre-resolution content
             with open(pre_file) as f:
                 pre_content = f.readlines()
@@ -182,7 +180,7 @@ class FuzzyRerere:
             # Extract conflicts from pre-resolution state
             conflicts = self._extract_conflict_markers(pre_file)
             if not conflicts:
-                print(f"No conflicts found in pre-resolution state")
+                print(f"No conflicts found in pre-resolution state for {file_path} with content {pre_content}")
                 pre_file.unlink()  # Clean up pre file since it has no conflicts
                 return
                 
@@ -194,7 +192,7 @@ class FuzzyRerere:
             resolutions = []
             line_offset = 0
             
-            for conflict in metadata["conflicts"]:
+            for conflict in conflicts:
                 # Adjust conflict start/end lines based on previous resolutions
                 adjusted_start = conflict["start_line"] + line_offset
                 adjusted_end = conflict["end_line"] + line_offset
@@ -276,7 +274,6 @@ class FuzzyRerere:
             
             # Clean up temporary files
             pre_file.unlink()
-            meta_path.unlink()
 
     def _apply_resolution(self, file_path, conflict_info, resolution):
         """Apply a resolution to a specific conflict in a file."""
@@ -328,7 +325,7 @@ def main():
         if fuzzy_rerere.save_preresolution(args.file):
             print(f"Saved pre-resolution state for {args.file}")
     elif args.command == 'post':
-        fuzzy_rerere.save_postresolution(args.file)
+        fuzzy_rerere.save_postresolution()
         print(f"Saved post-resolution state for {args.file}")
     elif args.command == 'resolve':
         if fuzzy_rerere.resolve_conflicts(args.file):
