@@ -1,0 +1,8 @@
+README.md
+setup.py
+rerereric.egg-info/PKG-INFO
+rerereric.egg-info/SOURCES.txt
+rerereric.egg-info/dependency_links.txt
+rerereric.egg-info/entry_points.txt
+rerereric.egg-info/top_level.txt
+tests/test_fuzzy_rerere.py

@@ -1,2 +1,0 @@
-[console_scripts]
-git-fuzzy-rerere = git_fuzzy_rerere.fuzzy_rerere:main

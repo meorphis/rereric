@@ -1,0 +1,2 @@
+[console_scripts]
+rerereric = rerereric.__main__:main

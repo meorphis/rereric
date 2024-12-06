@@ -14,7 +14,7 @@ import json
 import random
 import string
 
-class FuzzyRerere:
+class Rerereric:
     def __init__(self, similarity_threshold=0.8, context_lines=2, git_dir=None):
         self.similarity_threshold = similarity_threshold
         self.context_lines = context_lines

@@ -1,21 +1,21 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="git-fuzzy-rerere",
-    version="0.1.0",
+    name="rerereric",
+    version="0.0.1",
     packages=find_packages(),
     install_requires=[],
     entry_points={
-        'console_scripts': [
-            'git-fuzzy-rerere=git_fuzzy_rerere.fuzzy_rerere:main',
+        "console_scripts": [
+            "rerereric = rerereric.__main__:main",
         ],
     },
-    author="Git Fuzzy Rerere Contributors",
-    author_email="",
-    description="A fuzzy git rerere implementation with approximate conflict resolution matching",
+    author="Eric Morphis",
+    author_email="meorphis@gmail.com",
+    description="A fuzzy git rerere implementation with approximate context matching",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/git-fuzzy-rerere/git-fuzzy-rerere",
+    url="https://github.com/meorphis/rerereric",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

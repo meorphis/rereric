@@ -1,7 +1,0 @@
-README.md
-setup.py
-git_fuzzy_rerere.egg-info/PKG-INFO
-git_fuzzy_rerere.egg-info/SOURCES.txt
-git_fuzzy_rerere.egg-info/dependency_links.txt
-git_fuzzy_rerere.egg-info/entry_points.txt
-git_fuzzy_rerere.egg-info/top_level.txt
