@@ -44,7 +44,7 @@ class FuzzyRerere:
         return result.stdout.strip()
 
     def _hash_conflict(self, conflict_text):
-        """Create a fuzzy hash of the conflict content."""
+        """Create a hash of the conflict content."""
         return hashlib.sha256(conflict_text.encode()).hexdigest()[:16]
 
     def _extract_conflict_markers(self, file_path):
@@ -197,7 +197,7 @@ class FuzzyRerere:
             if not conflicts:
                 print(f"No conflicts found in pre-resolution state for {file_path} with content {pre_content}")
                 pre_file.unlink()  # Clean up pre file since it has no conflicts
-                return
+                continue
                 
             # Load post-resolution content
             with open(file_path) as f:
@@ -295,7 +295,7 @@ class FuzzyRerere:
 
     def reapply_resolutions(self, file_paths):
         """Try to resolve conflicts in a file using stored resolutions."""
-        resolved = False
+        resolved = []
 
         for file_path in file_paths:
             conflicts = self._extract_conflict_markers(file_path)
@@ -308,7 +308,7 @@ class FuzzyRerere:
                     print(f"Found similar resolution with {confidence:.2%} confidence")
                     if confidence >= self.similarity_threshold:
                         self._apply_resolution(file_path, conflict_info, resolution)
-                        resolved = True
+                        resolved.append(file_path)
                         print(f"Applied resolution from {conflict_info['file_path']} "
                             f"at line {conflict_info['start_line']}")
 
@@ -339,8 +339,9 @@ def main():
         fuzzy_rerere.save_resolutions()
         print(f"Saved post-resolution state")
     elif args.command == 'reapply_resolutions':
-        if fuzzy_rerere.reapply_resolutions(args.files):
-            print("Successfully resolved conflicts")
+        output = fuzzy_rerere.reapply_resolutions(args.files)
+        if output:
+            print(f"Successfully resolved conflicts in {output}")
         else:
             print("No matching resolutions found")
 

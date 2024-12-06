@@ -4,6 +4,21 @@ import shutil
 import tempfile
 from git_fuzzy_rerere.fuzzy_rerere import FuzzyRerere
 
+@pytest.fixture(autouse=True)
+def clean_fuzzy_rerere_dir(temp_git_dir):
+    """Clean up fuzzy-rerere directory before and after each test."""
+    # Clean before test
+    git_dir = Path(temp_git_dir)
+    fuzzy_rerere_dir = git_dir / '.git' / 'fuzzy-rerere'
+    if fuzzy_rerere_dir.exists():
+        shutil.rmtree(fuzzy_rerere_dir)
+
+    yield
+
+    # Clean after test
+    if fuzzy_rerere_dir.exists():
+        shutil.rmtree(fuzzy_rerere_dir)
+
 @pytest.fixture
 def temp_git_dir():
     """Create a temporary directory with a .git subdirectory."""
@@ -86,7 +101,7 @@ def test_mark_and_save_resolutions(fuzzy_rerere, fixture_path, tmp_path):
     resolution_files = list(fuzzy_rerere.rerere_dir.glob("*.json"))
     assert len(resolution_files) == 1
 
-def test_reapply_resolutions(fuzzy_rerere, fixture_path, tmp_path):
+def test_reapply_resolutions_simple(fuzzy_rerere, fixture_path, tmp_path):
     # First save a resolution
     conflict_file = tmp_path / "test.txt"
     shutil.copy(fixture_path / "simple_conflict.txt", conflict_file)
@@ -107,6 +122,29 @@ def test_reapply_resolutions(fuzzy_rerere, fixture_path, tmp_path):
     with open(new_conflict_file) as f:
         content = f.read()
     expected = read_fixture(fixture_path, "simple_conflict_resolved.txt")
+    assert content.strip() == expected.strip()
+
+def test_reapply_resolutions_complex(fuzzy_rerere, fixture_path, tmp_path):
+    # First save a resolution
+    conflict_file = tmp_path / "test.txt"
+    shutil.copy(fixture_path / "complex_conflict.txt", conflict_file)
+    
+    fuzzy_rerere.mark_conflicts([conflict_file])
+    shutil.copy(fixture_path / "complex_conflict_resolved.txt", conflict_file)
+    fuzzy_rerere.save_resolutions()
+    
+    # Now test reapplying to a new conflict
+    new_conflict_file = tmp_path / "test2.txt"
+    shutil.copy(fixture_path / "complex_conflict_reappearance.txt", new_conflict_file)
+    
+    # Try to resolve
+    resolved = fuzzy_rerere.reapply_resolutions([new_conflict_file])
+    assert resolved
+    
+    # Verify content matches resolution
+    with open(new_conflict_file) as f:
+        content = f.read()
+    expected = read_fixture(fixture_path, "complex_conflict_reappearance_resolved.txt")
     assert content.strip() == expected.strip()
 
 def test_hash_record(fuzzy_rerere):
