@@ -102,7 +102,7 @@ class Rerereric:
         after_ratio = difflib.SequenceMatcher(None, context1_after, context2_after).ratio()
         return (before_ratio + after_ratio) / 2
 
-    def _find_similar_resolution(self, conflict_info):
+    def _find_similar_resolution(self, conflict_info, similarity_threshold=0.8):
         """Find a similar conflict resolution from the stored records."""
         matches = []
         current_file = conflict_info['file_path']
@@ -128,7 +128,7 @@ class Rerereric:
                 )
                 
                 # Only consider matches with sufficient context similarity
-                if context_similarity >= self.similarity_threshold:
+                if context_similarity >= similarity_threshold:
                     matches.append({
                         'resolution': record['resolution'],
                         'context_similarity': context_similarity,
@@ -300,7 +300,7 @@ class Rerereric:
             
             # Process conflicts from bottom to top to maintain line numbers
             for conflict_info in reversed(conflicts):
-                resolution, confidence = self._find_similar_resolution(conflict_info)
+                resolution, confidence = self._find_similar_resolution(conflict_info, similarity_threshold=similarity_threshold)
 
                 if resolution:
                     print(f"Found similar resolution with {confidence:.2%} confidence")
