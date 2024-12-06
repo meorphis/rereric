@@ -10,10 +10,10 @@ from rerereric.core import Rerereric
 
 @pytest.fixture(autouse=True)
 def clean_fuzzy_rerere_dir(temp_git_dir):
-    """Clean up fuzzy-rerere directory before and after each test."""
+    """Clean up rerereric directory before and after each test."""
     # Clean before test
     git_dir = Path(temp_git_dir)
-    fuzzy_rerere_dir = git_dir / '.git' / 'fuzzy-rerere'
+    fuzzy_rerere_dir = git_dir / '.git' / 'rerereric'
     if fuzzy_rerere_dir.exists():
         shutil.rmtree(fuzzy_rerere_dir)
 

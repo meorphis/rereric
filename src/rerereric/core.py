@@ -19,7 +19,7 @@ class Rerereric:
         self.similarity_threshold = similarity_threshold
         self.context_lines = context_lines
         self.git_dir = git_dir if git_dir else self._get_git_dir()
-        self.rerere_dir = Path(self.git_dir) / "fuzzy-rerere"
+        self.rerere_dir = Path(self.git_dir) / "rerereric"
         self.rerere_dir.mkdir(exist_ok=True)
 
     def _hash_record(self, record):
@@ -56,7 +56,7 @@ class Rerereric:
         conflict_start_line = 0
         
         with open(file_path) as f:
-            lines = f.readlines()
+            lines = self._normalize_conflict_markers(f.readlines())
             
         for i, line in enumerate(lines):
             if line.startswith('<<<<<<<'):
@@ -313,3 +313,16 @@ class Rerereric:
                             f"at line {conflict_info['start_line']}")
 
         return resolved
+
+    def _normalize_conflict_markers(self, lines):
+        """Normalize conflict markers in a list of lines."""
+        normalized = []
+        for line in lines:
+            if line.startswith('<<<<<<<'):
+                normalized.append('<<<<<<<')
+            elif line.startswith('>>>>>>>'):
+                normalized.append('>>>>>>>')
+            else:
+                normalized.append(line)
+        return normalized
+
