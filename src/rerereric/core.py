@@ -69,7 +69,7 @@ class Rerereric:
                 
                 after_lines = []
                 after_start = min(i + 1, len(lines))
-                for j in range(after_start, min(after_start + self.context_lines, len(lines))):
+                for j in range(after_start, min(after_start + context_lines, len(lines))):
                     if lines[j].startswith('<<<<<<<'):
                         break
                     after_lines.append(lines[j])
@@ -191,7 +191,7 @@ class Rerereric:
                 pre_content = f.readlines()
                 
             # Extract conflicts from pre-resolution state
-            conflicts = self._extract_conflict_markers(pre_file)
+            conflicts = self._extract_conflict_markers(pre_file, context_lines=context_lines)
             if not conflicts:
                 print(f"No conflicts found in pre-resolution state for {file_path} with content {pre_content}")
                 pre_file.unlink()  # Clean up pre file since it has no conflicts
