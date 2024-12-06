@@ -1,7 +1,11 @@
-import pytest
-from pathlib import Path
+"""Tests for the FuzzyRerere class."""
+
 import shutil
 import tempfile
+from pathlib import Path
+
+import pytest
+
 from git_fuzzy_rerere.fuzzy_rerere import FuzzyRerere
 
 @pytest.fixture(autouse=True)
