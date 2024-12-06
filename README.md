@@ -26,11 +26,11 @@ rerereric mark_conflicts file1.ts file2.ts
 
 // [resolve conflicts in these files]
 
-// save the resolutions you applied to a cache
+// save the resolutions you applied to a cache (looks at the same files specified in the previous step)
 rerereric save_resolutions --context=2
 
 // [conflict later re-emerges, possibly in files with different names]
 
-// read resolutions from the cache and apply them if they match
+// read resolutions from the cache and apply them if they match (using different files is ok)
 rerereric reapply_resolutions --context=2 --similarity=0.9 file1.ts file3.ts
 ```
