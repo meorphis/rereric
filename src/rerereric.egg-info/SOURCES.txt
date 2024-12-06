@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+src/rerereric/__init__.py
+src/rerereric/cli.py
+src/rerereric/core.py
+src/rerereric.egg-info/PKG-INFO
+src/rerereric.egg-info/SOURCES.txt
+src/rerereric.egg-info/dependency_links.txt
+src/rerereric.egg-info/entry_points.txt
+src/rerereric.egg-info/top_level.txt
+tests/test_fuzzy_rerere.py

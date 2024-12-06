@@ -313,37 +313,3 @@ class Rerereric:
                             f"at line {conflict_info['start_line']}")
 
         return resolved
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Fuzzy Git Rerere Driver")
-    parser.add_argument('--similarity', type=float, default=0.8,
-                       help="Similarity threshold (0.0-1.0)")
-    parser.add_argument('--context', type=int, default=2,
-                       help="Number of context lines to consider")
-    parser.add_argument('command', choices=['mark_conflicts', 'save_resolutions', 'reapply_resolutions'],
-                       help="Command to execute (pre=save pre-resolution, post=save post-resolution, resolve=apply resolution)")
-    parser.add_argument('files', nargs='*', help="Files to process")
-
-    args = parser.parse_args()
-
-    fuzzy_rerere = FuzzyRerere(
-        similarity_threshold=args.similarity,
-        context_lines=args.context
-    )
-
-    if args.command == 'mark_conflicts':
-        if fuzzy_rerere.mark_conflicts(args.files):
-            print(f"Saved pre-resolution state for {args.files}")
-    elif args.command == 'save_resolutions':
-        fuzzy_rerere.save_resolutions()
-        print(f"Saved post-resolution state")
-    elif args.command == 'reapply_resolutions':
-        output = fuzzy_rerere.reapply_resolutions(args.files)
-        if output:
-            print(f"Successfully resolved conflicts in {output}")
-        else:
-            print("No matching resolutions found")
-
-if __name__ == "__main__":
-    main()

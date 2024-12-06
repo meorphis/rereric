@@ -4,6 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rerereric"
+version = "0.1.0"
+authors = [
+    {name = "Eric Morphis", email = "meorphis@gmail.com"},
+]
+description = "A fuzzy git rerere implementation with approximate context matching"
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/meorphis/rerereric"
+
+[project.scripts]
+rerereric = "rerereric.cli:main"
 
 [tool.pytest]
 pythonpath = "src"

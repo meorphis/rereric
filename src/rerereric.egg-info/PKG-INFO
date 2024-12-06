@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: rerereric
+Version: 0.1.0
+Summary: A fuzzy git rerere implementation with approximate context matching
+Author-email: Eric Morphis <meorphis@gmail.com>
+Project-URL: Homepage, https://github.com/meorphis/rerereric
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+
+# rerereric
