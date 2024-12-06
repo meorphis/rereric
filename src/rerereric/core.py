@@ -165,7 +165,7 @@ class Rerereric:
         file_id = pre_path.stem
         return file_id.replace('__', '/').replace('.pre', '').replace(str(self.rerere_dir) + '/', '')
 
-    def mark_conflicts(self, file_paths, context_lines=2):
+    def mark_conflicts(self, file_paths):
         """Save the entire file state before conflict resolution."""
         for file_path in file_paths:
             with open(file_path, 'r') as f:

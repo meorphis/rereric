@@ -16,7 +16,7 @@ def main():
     rerereric = Rerereric()
 
     if args.command == 'mark_conflicts':
-        if rerereric.mark_conflicts(args.files, context_lines=args.context):
+        if rerereric.mark_conflicts(args.files):
             print(f"Saved pre-resolution state for {args.files}")
     elif args.command == 'save_resolutions':
         rerereric.save_resolutions(context_lines=args.context)
