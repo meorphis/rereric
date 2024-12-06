@@ -1,0 +1,29 @@
+def hello():
+    print("Hello")
+
+def yo():
+    print("Yo!")
+
+def hey():
+    print("Hey")
+
+def add(x, b):
+    return x + b
+
+def what_is_up():
+    print("What is up?")
+
+def hola():
+    print("Hola")
+
+def howdy():
+    print("Howdy!")
+
+def subtract(a, y):
+    return a - y
+
+def goodbye():
+    print("Goodbye")
+
+def peace():
+    print("Peace")

@@ -1,3 +1,7 @@
-This is some content before the conflict
-<<<<<<<
-This is version A
+This is some content before the conflict                                                                                                                                                   
+<<<<<<<                                                                                                                                                                                    
+This is version A                                                                                                                                                                          
+=======                                                                                                                                                                                    
+This is version B                                                                                                                                                                          
+>>>>>>>                                                                                                                                                                                    
+This is some content after the conflict

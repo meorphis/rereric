@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
 """
-Git Fuzzy Rerere: Reuse Recorded Resolution with fuzzy matching.
-
-This implementation extends git's rerere (reuse recorded resolution) functionality
-by adding fuzzy matching capabilities. It can find and apply conflict resolutions
-even when the surrounding context has minor differences.
-
-Key features:
-- Configurable similarity thresholds for matching
-- Adjustable context lines for better accuracy
-- Support for multiple conflicts per file
-- Custom git directory support for testing
+A fuzzy git rerere implementation that allows for approximate conflict resolution matching
+based on configurable context similarity thresholds.
 """
 
 import os
