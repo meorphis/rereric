@@ -324,14 +324,14 @@ def main():
     parser.add_argument('command', choices=['mark_conflicts', 'save_resolutions', 'reapply_resolutions'],
                        help="Command to execute (pre=save pre-resolution, post=save post-resolution, resolve=apply resolution)")
     parser.add_argument('files', nargs='*', help="Files to process")
-    
+
     args = parser.parse_args()
-    
+
     fuzzy_rerere = FuzzyRerere(
         similarity_threshold=args.similarity,
         context_lines=args.context
     )
-    
+
     if args.command == 'mark_conflicts':
         if fuzzy_rerere.mark_conflicts(args.files):
             print(f"Saved pre-resolution state for {args.files}")
