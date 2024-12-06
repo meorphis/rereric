@@ -34,7 +34,7 @@ def temp_git_dir():
 @pytest.fixture
 def rerereric(temp_git_dir):
     """Create a FuzzyRerere instance with a temporary directory."""
-    return Rerereric(similarity_threshold=0.8, context_lines=2, git_dir=temp_git_dir)
+    return Rerereric(git_dir=temp_git_dir)
 
 @pytest.fixture
 def fixture_path():

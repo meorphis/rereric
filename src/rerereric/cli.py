@@ -13,19 +13,20 @@ def main():
 
     args = parser.parse_args()
 
-    rerereric = Rerereric(
-        similarity_threshold=args.similarity,
-        context_lines=args.context
-    )
+    rerereric = Rerereric()
 
     if args.command == 'mark_conflicts':
-        if rerereric.mark_conflicts(args.files):
+        if rerereric.mark_conflicts(args.files, context_lines=args.context):
             print(f"Saved pre-resolution state for {args.files}")
     elif args.command == 'save_resolutions':
-        rerereric.save_resolutions()
+        rerereric.save_resolutions(context_lines=args.context)
         print(f"Saved post-resolution state")
     elif args.command == 'reapply_resolutions':
-        output = rerereric.reapply_resolutions(args.files)
+        output = rerereric.reapply_resolutions(
+            args.files,
+            similarity_threshold=args.similarity,
+            context_lines=args.context
+        )
         if output:
             print(f"Successfully resolved conflicts in {output}")
         else:

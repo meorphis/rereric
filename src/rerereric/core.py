@@ -15,9 +15,7 @@ import random
 import string
 
 class Rerereric:
-    def __init__(self, similarity_threshold=0.8, context_lines=2, git_dir=None):
-        self.similarity_threshold = similarity_threshold
-        self.context_lines = context_lines
+    def __init__(self, git_dir=None):
         self.git_dir = git_dir if git_dir else self._get_git_dir()
         self.rerere_dir = Path(self.git_dir) / "rerereric"
         self.rerere_dir.mkdir(exist_ok=True)
@@ -47,7 +45,7 @@ class Rerereric:
         """Create a hash of the conflict content."""
         return hashlib.sha256(conflict_text.encode()).hexdigest()[:16]
 
-    def _extract_conflict_markers(self, file_path):
+    def _extract_conflict_markers(self, file_path, context_lines=2):
         """Extract conflict markers and their context from a file."""
         conflicts = []
         in_conflict = False
@@ -62,7 +60,7 @@ class Rerereric:
             if line.startswith('<<<<<<<'):
                 in_conflict = True
                 conflict_start_line = i
-                before_context = ''.join(context_before[-self.context_lines:]) if context_before else ''
+                before_context = ''.join(context_before[-context_lines:]) if context_before else ''
                 conflict_lines = [line]
             elif line.startswith('=======') and in_conflict:
                 conflict_lines.append(line)
@@ -93,7 +91,7 @@ class Rerereric:
                 conflict_lines.append(line)
             else:
                 context_before.append(line)
-                if len(context_before) > self.context_lines:
+                if len(context_before) > context_lines:
                     context_before.pop(0)
                     
         return conflicts
@@ -167,7 +165,7 @@ class Rerereric:
         file_id = pre_path.stem
         return file_id.replace('__', '/').replace('.pre', '').replace(str(self.rerere_dir) + '/', '')
 
-    def mark_conflicts(self, file_paths):
+    def mark_conflicts(self, file_paths, context_lines=2):
         """Save the entire file state before conflict resolution."""
         for file_path in file_paths:
             with open(file_path, 'r') as f:
@@ -182,7 +180,7 @@ class Rerereric:
                 
         return True
 
-    def save_resolutions(self):
+    def save_resolutions(self, context_lines=2):
         """Save resolutions after conflicts have been manually resolved."""
         # Find matching pre-resolution state
         for pre_file in self.rerere_dir.glob("*.pre"):
@@ -293,7 +291,7 @@ class Rerereric:
         with open(file_path, 'w') as f:
             f.writelines(content)
 
-    def reapply_resolutions(self, file_paths):
+    def reapply_resolutions(self, file_paths, similarity_threshold=0.8, context_lines=2):
         """Try to resolve conflicts in a file using stored resolutions."""
         resolved = []
 
@@ -306,7 +304,7 @@ class Rerereric:
 
                 if resolution:
                     print(f"Found similar resolution with {confidence:.2%} confidence")
-                    if confidence >= self.similarity_threshold:
+                    if confidence >= similarity_threshold:
                         self._apply_resolution(file_path, conflict_info, resolution)
                         resolved.append(file_path)
                         print(f"Applied resolution from {conflict_info['file_path']} "
