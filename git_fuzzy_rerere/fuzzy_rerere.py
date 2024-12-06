@@ -15,10 +15,10 @@ import random
 import string
 
 class FuzzyRerere:
-    def __init__(self, similarity_threshold=0.8, context_lines=2):
+    def __init__(self, similarity_threshold=0.8, context_lines=2, git_dir=None):
         self.similarity_threshold = similarity_threshold
         self.context_lines = context_lines
-        self.git_dir = self._get_git_dir()
+        self.git_dir = git_dir if git_dir else self._get_git_dir()
         self.rerere_dir = Path(self.git_dir) / "fuzzy-rerere"
         self.rerere_dir.mkdir(exist_ok=True)
 
